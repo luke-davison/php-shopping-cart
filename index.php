@@ -12,56 +12,42 @@
     class Product {
         public $name;
         public $price;
-        public $priceString;
         public function __construct($name, $price) {
             $this->name = $name;
             $this->price = $price;
-            $this->priceString = "$" . number_format($price, 2, ".", ",");
         }
     }
 
     class CartItem {
         public $product;
         public $quantity = 1;
-        public $itemTotal;
-        public $itemTotalString;
         public function __construct($product) {
             $this->product = $product;
-            $this->updateTotal();
         }
-        public function changeQuantity($change) {
-            $this->quantity += $change;
-            $this->updateTotal();
-        }
-        public function updateTotal() {
-            $this->itemTotal = $this->quantity * $this->product->price;
-            $this->itemTotalString = "$" . number_format($this->itemTotal, 2, ".", ",");
+        public function getTotal() {
+            return $this->quantity * $this->product->price;
         }
     }
 
     class ShoppingCart {
         public $items = array();
-        public $cartTotal = 0;
-        public $cartTotalString = "$0.00";
         public function addProduct($productName) {
             if (isset($this->items[$productName])) {
-                $this->items[$productName]->changeQuantity(1);
+                $this->items[$productName]->quantity++;
             } else {
                 $productToAdd = $_SESSION["productList"][$productName];
                 $this->items[$productName] = new CartItem($productToAdd);
             }
-            $this->updateTotal();
         }
         public function removeProduct($productName) {
             unset($this->items[$productName]);
-            $this->updateTotal();
         }
-        public function updateTotal() {
-            $this->cartTotal = 0;
+        public function getTotal() {
+            $total = 0;
             foreach ($this->items as $item) {
-                $this->cartTotal += $item->itemTotal;
+                $total += $item->getTotal();
             }
-            $this->cartTotalString = "$" . number_format($this->cartTotal, 2, ".", ",");
+            return $total;
         }
     }
 
@@ -89,6 +75,10 @@
         $_SESSION["shoppingCart"]->removeProduct($productName);
     };
 
+    function formatCurrency($amount) {
+        return "$" . number_format($amount, 2, ".", ",");
+    }
+
 ?>
 <html>
 	<head>
@@ -105,7 +95,7 @@
                 foreach($_SESSION["productList"] as $product) {
                     echo "<tr>";
                     echo "<td>" . $product->name . "</td>";
-                    echo "<td>" . $product->priceString . "</td>";
+                    echo "<td>" . formatCurrency($product->price) . "</td>";
                     echo "<td><a href='index.php?add=" . $product->name . "'> Add To Cart </a></td>";
                     echo "</tr>";
                 };
@@ -123,16 +113,16 @@
                 foreach($_SESSION["shoppingCart"]->items as $item) {
                     echo "<tr>";
                     echo "<td>" . $item->product->name . "</td>";
-                    echo "<td>" . $item->product->priceString . "</td>";
+                    echo "<td>" . formatCurrency($item->product->price) . "</td>";
                     echo "<td>" . $item->quantity . "</td>";
-                    echo "<td>" . $item->itemTotalString . "</td>";
+                    echo "<td>" . formatCurrency($item->getTotal()) . "</td>";
                     echo "<td><a href='index.php?remove=" . $item->product->name . "'> Remove From Cart </a></td>";
                     echo "</tr>";
                 };
             ?>
             <tr>
                 <td colspan="3">Order Total</td>
-                <td><?php echo $_SESSION["shoppingCart"]->cartTotalString ?></td>
+                <td><?php echo formatCurrency($_SESSION["shoppingCart"]->getTotal()) ?></td>
             </tr>
         </table>
     </body>
